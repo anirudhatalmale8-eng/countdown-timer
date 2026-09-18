@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Countdown Timer</title>
+<style>
+  :root {
+    --bg: #0e1117;
+    --panel: #161b26;
+    --line: #262d3d;
+    --text: #e8ecf4;
+    --muted: #8b95ad;
+    --accent: #5b8cff;
+    --accent-2: #2ee6a8;
+    --danger: #ff5d6c;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: radial-gradient(1200px 600px at 50% -10%, #1b2437 0%, var(--bg) 60%);
+    color: var(--text);
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  .card {
+    width: 100%;
+    max-width: 460px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 28px 26px 24px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, .45);
+  }
+
+  h1 {
+    margin: 0 0 22px;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  .display {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+    font-size: clamp(56px, 17vw, 82px);
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+    letter-spacing: .02em;
+    margin-bottom: 6px;
+    transition: color .2s ease;
+  }
+
+  .display.running { color: var(--accent-2); }
+  .display.paused  { color: #ffc861; }
+  .display.done    { color: var(--danger); }
+
+  .status {
+    text-align: center;
+    font-size: 12px;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    min-height: 16px;
+    margin-bottom: 20px;
+  }
+
+  .bar {
+    height: 6px;
+    border-radius: 99px;
+    background: #222a3a;
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+
+  .bar > span {
+    display: block;
+    height: 100%;
+    width: 100%;
+    border-radius: 99px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    transform-origin: left center;
+    transition: transform .25s linear;
+  }
+
+  .field {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  label {
+    font-size: 13px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  input[type="number"] {
+    flex: 1;
+    min-width: 0;
+    background: #0f1420;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 16px;
+    padding: 11px 12px;
+    outline: none;
+  }
+
+  input[type="number"]:focus { border-color: var(--accent); }
+  input[type="number"]:disabled { opacity: .5; cursor: not-allowed; }
+
+  .presets { display: flex; gap: 8px; }
+
+  .presets button {
+    flex: 1;
+    padding: 8px 0;
+    font-size: 13px;
+    background: #0f1420;
+    border: 1px solid var(--line);
+    color: var(--muted);
+  }
+
+  .presets button:hover:not(:disabled) { color: var(--text); border-color: var(--accent); }
+
+  .controls {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 10px;
+    margin-top: 22px;
+  }
+
+  button {
+    cursor: pointer;
+    border-radius: 10px;
+    font-family: inherit;
+    font-weight: 600;
+    transition: background .15s ease, border-color .15s ease, color .15s ease, opacity .15s ease;
+  }
+
+  button:disabled { opacity: .45; cursor: not-allowed; }
+
+  .btn-primary {
+    padding: 14px 0;
+    font-size: 15px;
+    border: none;
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .btn-primary:hover:not(:disabled) { background: #7aa1ff; }
+
+  .btn-ghost {
+    padding: 14px 0;
+    font-size: 15px;
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--text);
+  }
+
+  .btn-ghost:hover:not(:disabled) { border-color: var(--muted); }
+
+  .hint {
+    margin: 16px 0 0;
+    text-align: center;
+    font-size: 11px;
+    color: #5f6981;
+  }
+</style>
+</head>
+<body>
+  <main class="card">
+    <h1>Countdown Timer</h1>
+
+    <div id="display" class="display">05:00</div>
+    <div id="status" class="status">Ready</div>
+
+    <div class="bar"><span id="progress"></span></div>
+
+    <div class="field">
+      <label for="minutes">Minutes</label>
+      <input id="minutes" type="number" min="0" max="999" step="1" value="5" inputmode="numeric">
+    </div>
+
+    <div class="presets">
+      <button type="button" class="preset" data-min="1">1 min</button>
+      <button type="button" class="preset" data-min="5">5 min</button>
+      <button type="button" class="preset" data-min="10">10 min</button>
+      <button type="button" class="preset" data-min="25">25 min</button>
+    </div>
+
+    <div class="controls">
+      <button id="startPause" type="button" class="btn-primary">Start</button>
+      <button id="reset" type="button" class="btn-ghost">Reset</button>
+    </div>
+
+    <p class="hint">Space = start / pause &nbsp;·&nbsp; R = reset</p>
+  </main>
+
+<script>
+(function () {
+  var displayEl   = document.getElementById('display');
+  var statusEl    = document.getElementById('status');
+  var progressEl  = document.getElementById('progress');
+  var minutesEl   = document.getElementById('minutes');
+  var startPauseEl= document.getElementById('startPause');
+  var resetEl     = document.getElementById('reset');
+  var presetEls   = document.querySelectorAll('.preset');
+
+  var totalMs     = 5 * 60 * 1000; // duration of the current countdown
+  var remainingMs = totalMs;
+  var deadline    = 0;             // wall-clock time the countdown ends
+  var ticker      = null;
+  var state       = 'idle';        // idle | running | paused | done
+
+  function clampMinutes() {
+    var n = parseFloat(minutesEl.value);
+    if (!isFinite(n) || n < 0) n = 0;
+    if (n > 999) n = 999;
+    return n;
+  }
+
+  function format(ms) {
+    var total = Math.ceil(ms / 1000);
+    var h = Math.floor(total / 3600);
+    var m = Math.floor((total % 3600) / 60);
+    var s = total % 60;
+    var pad = function (v) { return v < 10 ? '0' + v : '' + v; };
+    return (h > 0 ? pad(h) + ':' : '') + pad(m) + ':' + pad(s);
+  }
+
+  function render() {
+    displayEl.textContent = format(remainingMs);
+    displayEl.className = 'display' + (state === 'running' ? ' running'
+                                     : state === 'paused'  ? ' paused'
+                                     : state === 'done'    ? ' done' : '');
+
+    statusEl.textContent = state === 'running' ? 'Running'
+                         : state === 'paused'  ? 'Paused'
+                         : state === 'done'    ? "Time's up" : 'Ready';
+
+    var ratio = totalMs > 0 ? remainingMs / totalMs : 0;
+    progressEl.style.transform = 'scaleX(' + Math.max(0, Math.min(1, ratio)) + ')';
+
+    startPauseEl.textContent = state === 'running' ? 'Pause'
+                             : state === 'paused'  ? 'Resume'
+                             : state === 'done'    ? 'Start again' : 'Start';
+    startPauseEl.disabled = (state !== 'running' && Math.round(clampMinutes() * 60 * 1000) <= 0 && remainingMs <= 0);
+    minutesEl.disabled = (state === 'running');
+    presetEls.forEach(function (b) { b.disabled = (state === 'running'); });
+
+    document.title = (state === 'running' || state === 'paused')
+      ? format(remainingMs) + ' — Countdown Timer'
+      : 'Countdown Timer';
+  }
+
+  function tick() {
+    remainingMs = deadline - Date.now();
+    if (remainingMs <= 0) {
+      remainingMs = 0;
+      stopTicker();
+      state = 'done';
+      render();
+      beep();
+      return;
+    }
+    render();
+  }
+
+  function stopTicker() {
+    if (ticker !== null) { clearInterval(ticker); ticker = null; }
+  }
+
+  function start() {
+    if (state === 'idle' || state === 'done') {
+      totalMs = Math.round(clampMinutes() * 60 * 1000);
+      remainingMs = totalMs;
+    }
+    if (remainingMs <= 0) return;
+    deadline = Date.now() + remainingMs;
+    state = 'running';
+    stopTicker();
+    ticker = setInterval(tick, 200); // sub-second polling keeps the display honest
+    render();
+  }
+
+  function pause() {
+    if (state !== 'running') return;
+    remainingMs = Math.max(0, deadline - Date.now());
+    stopTicker();
+    state = 'paused';
+    render();
+  }
+
+  function reset() {
+    stopTicker();
+    totalMs = Math.round(clampMinutes() * 60 * 1000);
+    remainingMs = totalMs;
+    state = 'idle';
+    render();
+  }
+
+  function beep() {
+    try {
+      var Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      var ctx = new Ctx();
+      [0, 0.28, 0.56].forEach(function (offset) {
+        var osc = ctx.createOscillator();
+        var gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = 880;
+        gain.gain.setValueAtTime(0.0001, ctx.currentTime + offset);
+        gain.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + offset + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + offset + 0.18);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(ctx.currentTime + offset);
+        osc.stop(ctx.currentTime + offset + 0.2);
+      });
+    } catch (e) { /* audio is a nicety, never block the timer on it */ }
+  }
+
+  startPauseEl.addEventListener('click', function () {
+    if (state === 'running') pause(); else start();
+  });
+
+  resetEl.addEventListener('click', reset);
+
+  minutesEl.addEventListener('input', function () {
+    if (state === 'idle') reset();
+  });
+
+  presetEls.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      minutesEl.value = btn.dataset.min;
+      reset();
+    });
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.target === minutesEl && e.key !== ' ') return;
+    if (e.code === 'Space' || e.key === ' ') {
+      e.preventDefault();
+      if (state === 'running') pause(); else start();
+    } else if (e.key === 'r' || e.key === 'R') {
+      reset();
+    }
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
